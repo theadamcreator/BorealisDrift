@@ -5,9 +5,39 @@ public class TreePossession : MonoBehaviour
 {
     public PossessableTree currentTree; // This holds the tree you are currently possessing
     public float moveDelay = 0.2f;      // Cooldown between moves so input doesn’t feel too twitchy
-
+    private CameraFollowTree camFollow;
     private bool canMove = true;        // Prevents spamming directional input
 
+    void Start()
+    {
+        if (currentTree == null)
+        {
+            Debug.LogError("currentTree is null on start!");
+            return;
+        }
+        else
+        {
+            Debug.Log("currentTree found: " + currentTree.name);
+        }
+
+        currentTree.Possess();
+
+        Camera mainCam = Camera.main;
+        if (mainCam == null)
+        {
+            Debug.LogError("No Main Camera found in scene!");
+            return;
+        }
+
+        camFollow = mainCam.GetComponent<CameraFollowTree>();
+        if (camFollow == null)
+        {
+            Debug.LogError("CameraFollowTree script missing on Main Camera!");
+            return;
+        }
+
+        camFollow.SetTarget(currentTree.transform);
+    }
     void Update()
     {
         if (!canMove) return; // If still on cooldown, ignore input
@@ -29,26 +59,77 @@ public class TreePossession : MonoBehaviour
     // This method tries to move your light-being from one tree to another
     void TryMove(Vector3 direction)
     {
-        // Send a ray in the chosen direction from the current tree
-        Ray ray = new Ray(currentTree.transform.position, direction);
+        PossessableTree[] allTrees = FindObjectsOfType<PossessableTree>();
 
-        // If it hits something within 5 units...
-        if (Physics.Raycast(ray, out RaycastHit hit, 5f))
+        PossessableTree bestCandidate = null;
+        float closestAngle = 45f; // Only consider trees roughly within 45 degrees
+        float closestDistance = Mathf.Infinity;
+
+        foreach (var tree in allTrees)
         {
-            // Check if the thing hit has a PossessableTree script
-            PossessableTree newTree = hit.collider.GetComponent<PossessableTree>();
-            if (newTree != null)
+            if (tree == currentTree) continue;
+
+            if (tree.possessionPoint == null)
             {
-                // "Leave" the current tree (change color, remove glow, etc.)
-                currentTree.Unpossess();
-
-                // "Enter" the new tree
-                currentTree = newTree;
-                currentTree.Possess();
-
-                // Optional: start the cooldown so player can’t spam movement
-                StartCoroutine(MoveCooldown());
+                Debug.LogError("Tree missing possessionPoint: " + tree.name);
+                continue;
             }
+            if (currentTree.possessionPoint == null)
+            {
+                Debug.LogError("Current tree is missing possessionPoint: " + currentTree.name);
+                return;
+            }
+
+            if (camFollow == null)
+            {
+                Debug.LogWarning("camFollow is null during TryMove! Skipping camera update.");
+            }
+            else
+            {
+                camFollow.SetTarget(currentTree.transform);
+            }
+
+            camFollow.SetTarget(currentTree.transform);
+           
+            if (tree == null)
+            {
+                Debug.LogError("Tree in allTrees was null.");
+                continue;
+            }
+
+            if (tree.possessionPoint == null)
+            {
+                Debug.LogError("Tree missing possessionPoint: " + tree.name);
+                continue;
+            }
+            if (currentTree.possessionPoint == null)
+            {
+                Debug.LogError("currentTree is missing possessionPoint: " + currentTree.name);
+                return;
+            }
+
+            Vector3 toTree = (tree.possessionPoint.position - currentTree.possessionPoint.position);
+
+            float angle = Vector3.Angle(direction, toTree);
+
+            if (angle < closestAngle)
+            {
+                float dist = toTree.magnitude;
+                if (dist < closestDistance)
+                {
+                    closestAngle = angle;
+                    closestDistance = dist;
+                    bestCandidate = tree;
+                }
+            }
+        }
+
+        if (bestCandidate != null)
+        {
+            currentTree.Unpossess();
+            currentTree = bestCandidate;
+            currentTree.Possess();
+            StartCoroutine(MoveCooldown());
         }
     }
 
