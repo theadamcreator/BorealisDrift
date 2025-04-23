@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections; // Required to use IEnumerator for coroutines
+using System.Collections.Generic;
 
 public class TreePossession : MonoBehaviour
 {
@@ -15,25 +16,29 @@ public class TreePossession : MonoBehaviour
             Debug.LogError("currentTree is null on start!");
             return;
         }
-        else
-        {
-            Debug.Log("currentTree found: " + currentTree.name);
-        }
 
+        Debug.Log("currentTree found: " + currentTree.name);
         currentTree.Possess();
+
+        StartCoroutine(AssignCameraAfterDelay()); //New: delay camera assignment
+    }
+
+    IEnumerator AssignCameraAfterDelay()
+    {
+        yield return null; // Wait a frame for Unity to properly register the MainCamera
 
         Camera mainCam = Camera.main;
         if (mainCam == null)
         {
-            Debug.LogError("No Main Camera found in scene!");
-            return;
+            Debug.LogError("No Main Camera found in scene after delay!");
+            yield break;
         }
 
         camFollow = mainCam.GetComponent<CameraFollowTree>();
         if (camFollow == null)
         {
-            Debug.LogError("CameraFollowTree script missing on Main Camera!");
-            return;
+            Debug.LogError("CameraFollowTree script missing on Main Camera after delay!");
+            yield break;
         }
 
         camFollow.SetTarget(currentTree.transform);
@@ -60,75 +65,51 @@ public class TreePossession : MonoBehaviour
     void TryMove(Vector3 direction)
     {
         PossessableTree[] allTrees = FindObjectsOfType<PossessableTree>();
-
-        PossessableTree bestCandidate = null;
-        float closestAngle = 45f; // Only consider trees roughly within 45 degrees
-        float closestDistance = Mathf.Infinity;
+        List<PossessableTree> potentialTargets = new List<PossessableTree>();
 
         foreach (var tree in allTrees)
         {
             if (tree == currentTree) continue;
+            if (tree.possessionPoint == null) continue;
+            if (currentTree.possessionPoint == null) continue;
 
-            if (tree.possessionPoint == null)
-            {
-                Debug.LogError("Tree missing possessionPoint: " + tree.name);
-                continue;
-            }
-            if (currentTree.possessionPoint == null)
-            {
-                Debug.LogError("Current tree is missing possessionPoint: " + currentTree.name);
-                return;
-            }
+            potentialTargets.Add(tree);
+        }
 
-            if (camFollow == null)
-            {
-                Debug.LogWarning("camFollow is null during TryMove! Skipping camera update.");
-            }
-            else
-            {
-                camFollow.SetTarget(currentTree.transform);
-            }
+        // Sort by distance
+        potentialTargets.Sort((a, b) =>
+        {
+            float distA = Vector3.Distance(currentTree.possessionPoint.position, a.possessionPoint.position);
+            float distB = Vector3.Distance(currentTree.possessionPoint.position, b.possessionPoint.position);
+            return distA.CompareTo(distB);
+        });
 
-            camFollow.SetTarget(currentTree.transform);
-           
-            if (tree == null)
-            {
-                Debug.LogError("Tree in allTrees was null.");
-                continue;
-            }
+        // Grab up to 2 closest trees
+        int count = Mathf.Min(2, potentialTargets.Count);
+        PossessableTree bestMatch = null;
+        float bestDot = -1f;
 
-            if (tree.possessionPoint == null)
-            {
-                Debug.LogError("Tree missing possessionPoint: " + tree.name);
-                continue;
-            }
-            if (currentTree.possessionPoint == null)
-            {
-                Debug.LogError("currentTree is missing possessionPoint: " + currentTree.name);
-                return;
-            }
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 toTree = (potentialTargets[i].possessionPoint.position - currentTree.possessionPoint.position).normalized;
+            float dot = Vector3.Dot(direction.normalized, toTree);
 
-            Vector3 toTree = (tree.possessionPoint.position - currentTree.possessionPoint.position);
-
-            float angle = Vector3.Angle(direction, toTree);
-
-            if (angle < closestAngle)
+            if (dot > bestDot) // Best alignment with player input
             {
-                float dist = toTree.magnitude;
-                if (dist < closestDistance)
-                {
-                    closestAngle = angle;
-                    closestDistance = dist;
-                    bestCandidate = tree;
-                }
+                bestDot = dot;
+                bestMatch = potentialTargets[i];
             }
         }
 
-        if (bestCandidate != null)
+        if (bestMatch != null)
         {
             currentTree.Unpossess();
-            currentTree = bestCandidate;
+            currentTree = bestMatch;
             currentTree.Possess();
+
+            if (camFollow != null)
+                camFollow.SetTarget(currentTree.transform);
+
             StartCoroutine(MoveCooldown());
         }
     }

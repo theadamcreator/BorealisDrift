@@ -13,8 +13,6 @@ public class CameraFollowTree : MonoBehaviour
         Vector3 desiredPosition = target.position + offset;
         transform.position = Vector3.Lerp(transform.position, desiredPosition, followSpeed * Time.deltaTime);
 
-        // Optionally face the tree
-        transform.LookAt(target);
     }
 
     public void SetTarget(Transform newTarget)
