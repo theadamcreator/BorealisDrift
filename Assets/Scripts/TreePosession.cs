@@ -64,6 +64,8 @@ public class TreePossession : MonoBehaviour
     // This method tries to move your light-being from one tree to another
     void TryMove(Vector3 direction)
     {
+        if (currentTree == null || currentTree.possessionPoint == null) return;
+
         PossessableTree[] allTrees = FindObjectsOfType<PossessableTree>();
         List<PossessableTree> potentialTargets = new List<PossessableTree>();
 
@@ -71,7 +73,6 @@ public class TreePossession : MonoBehaviour
         {
             if (tree == currentTree) continue;
             if (tree.possessionPoint == null) continue;
-            if (currentTree.possessionPoint == null) continue;
 
             potentialTargets.Add(tree);
         }
@@ -84,20 +85,34 @@ public class TreePossession : MonoBehaviour
             return distA.CompareTo(distB);
         });
 
-        // Grab up to 2 closest trees
-        int count = Mathf.Min(2, potentialTargets.Count);
+        // Consider only the closest N
+        int numToCheck = Mathf.Min(5, potentialTargets.Count);
+        List<PossessableTree> directionalCandidates = new List<PossessableTree>();
+
+        for (int i = 0; i < numToCheck; i++)
+        {
+            Vector3 toCandidate = (potentialTargets[i].possessionPoint.position - currentTree.possessionPoint.position).normalized;
+
+            // Only accept trees generally in front (dot > 0.3 = ~70° cone)
+            if (Vector3.Dot(direction.normalized, toCandidate) > 0.3f)
+            {
+                directionalCandidates.Add(potentialTargets[i]);
+            }
+        }
+
+        // From valid direction-aligned options, pick the one with best alignment
         PossessableTree bestMatch = null;
         float bestDot = -1f;
 
-        for (int i = 0; i < count; i++)
+        foreach (var tree in directionalCandidates)
         {
-            Vector3 toTree = (potentialTargets[i].possessionPoint.position - currentTree.possessionPoint.position).normalized;
+            Vector3 toTree = (tree.possessionPoint.position - currentTree.possessionPoint.position).normalized;
             float dot = Vector3.Dot(direction.normalized, toTree);
 
-            if (dot > bestDot) // Best alignment with player input
+            if (dot > bestDot)
             {
                 bestDot = dot;
-                bestMatch = potentialTargets[i];
+                bestMatch = tree;
             }
         }
 
