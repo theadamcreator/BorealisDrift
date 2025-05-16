@@ -66,7 +66,7 @@ public class TreePossession : MonoBehaviour
     {
         if (currentTree == null || currentTree.possessionPoint == null) return;
 
-        PossessableTree[] allTrees = FindObjectsOfType<PossessableTree>();
+        PossessableTree[] allTrees = Object.FindObjectsByType<PossessableTree>(FindObjectsSortMode.None);
         List<PossessableTree> potentialTargets = new List<PossessableTree>();
 
         foreach (var tree in allTrees)

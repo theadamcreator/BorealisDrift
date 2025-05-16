@@ -11,8 +11,8 @@ public class GamePhaseManager : MonoBehaviour
 
     public void EnterCanopyPhase()
     {
-        canopyPhase.SetActive(true); // Activate the canopy
-        // Optional: Disable possession system if needed
-        gameObject.SetActive(false); // Disable this manager if you only need it once
+        canopyPhase.SetActive(true);
+        EnergyBank.instance?.BeginCanopyPhase(); // Start the countdown timer
+        gameObject.SetActive(false);
     }
 }
