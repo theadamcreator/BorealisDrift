@@ -17,6 +17,13 @@ public class PossessableTree : MonoBehaviour
     {
         if (treeLight != null)
             treeLight.enabled = true;
+
+        TreeEnergy energy = GetComponent<TreeEnergy>();
+        if (energy != null && !energy.hasBeenDrained)
+        {
+            EnergyBank bank = FindObjectOfType<EnergyBank>();
+            energy.DrainEnergy(bank);
+        }
     }
 
     public void Unpossess()

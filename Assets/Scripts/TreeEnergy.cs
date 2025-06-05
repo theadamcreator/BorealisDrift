@@ -17,8 +17,6 @@ public class TreeEnergy : MonoBehaviour
             var emission = energyParticles.emission;
             emission.rateOverTime = energyAmount * 5f; // Adjust multiplier to taste
         }
-        if (treeRenderer != null)
-            treeRenderer.sharedMaterial.color = Color.blue;
     }
 
     public void DrainEnergy(EnergyBank bank)
@@ -27,9 +25,6 @@ public class TreeEnergy : MonoBehaviour
 
         hasBeenDrained = true;
         bank.AddEnergy(energyAmount);
-
-        if (treeRenderer != null)
-            treeRenderer.sharedMaterial.color = Color.white;
 
         if (energyOrbVisual != null)
             energyOrbVisual.SetActive(false);
