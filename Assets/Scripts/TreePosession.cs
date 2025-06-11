@@ -48,13 +48,13 @@ public class TreePossession : MonoBehaviour
         if (!canMove) return; // If still on cooldown, ignore input
 
         // Check arrow key input and try to move in that direction
-        if (Input.GetKeyDown(KeyCode.RightArrow))
+        if (Input.GetKeyDown(KeyCode.D))
             TryMove(Vector3.right); // Move right in world space
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        else if (Input.GetKeyDown(KeyCode.A))
             TryMove(Vector3.left);  // Move left
-        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        else if (Input.GetKeyDown(KeyCode.W))
             TryMove(Vector3.forward); // Move forward (Z+)
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        else if (Input.GetKeyDown(KeyCode.S))
             TryMove(Vector3.back);    // Move backward (Z-)
 
         // Pressing Space will trigger the jump to the Canopy phase
