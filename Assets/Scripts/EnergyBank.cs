@@ -30,7 +30,11 @@ public class EnergyBank : MonoBehaviour
         canopyTimeLeft = totalEnergy;
         timerRunning = true;
     }
-
+    public void Consume(float seconds)
+    {
+        // negative energy never allowed
+        canopyTimeLeft = Mathf.Max(0, canopyTimeLeft - seconds);
+    }
     void Update()
     {
         if (timerRunning)
