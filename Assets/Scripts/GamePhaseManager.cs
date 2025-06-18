@@ -12,8 +12,8 @@ public class GamePhaseManager : MonoBehaviour
     [SerializeField] private AudioListener canopyListener;  // inside FP camera
 
     [Header("Input")]
-    [SerializeField] private PlayerInput canopyInput;                     // cached at Start()
-
+    [SerializeField] private PlayerInput canopyInput;           
+    [SerializeField] private FirstPersonCanopyController canopyController;
     private void Awake()
     {
         canopyInput = canopyPhase.GetComponentInChildren<PlayerInput>(true);

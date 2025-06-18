@@ -29,8 +29,9 @@ public class FirstPersonCanopyController : MonoBehaviour
     private float verticalVelocity;
     private float pitch;                // camera X-rotation
 
-    void Awake()
+    private void Awake()
     {
+
         cc = GetComponent<CharacterController>();
         controls = new CanopyControls();
 
