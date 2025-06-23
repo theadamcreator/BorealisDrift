@@ -12,6 +12,8 @@ public class FirstPersonCanopyController : MonoBehaviour
     public float moveSpeed = 6f;
     public float jumpForce = 4f;
     public float gravity = 0f;          // keep at 0 to “float”
+    private Vector3 airVelocity;     // stores horizontal momentum
+    [Range(0, 5)] public float airFriction = 1.5f; // 0 = no slowing
 
     [Header("Look")]
     public float lookSensitivity = 3f;
@@ -43,7 +45,12 @@ public class FirstPersonCanopyController : MonoBehaviour
 
         controls.Player.Jump.performed += _ =>
         {
-            if (cc.isGrounded) verticalVelocity = jumpForce;
+            if (cc.isGrounded)
+            {
+                verticalVelocity = jumpForce;
+                airVelocity = (transform.forward * moveInput.y + transform.right * moveInput.x)
+                              * moveSpeed;             // capture current ground speed
+            }
         };
 
         controls.Player.Fire.performed += _ => GetComponent<Shooter>().TryShoot();
@@ -60,15 +67,30 @@ public class FirstPersonCanopyController : MonoBehaviour
         transform.Rotate(Vector3.up, lookInput.x * lookSensitivity);
 
         // MOVE (relative to facing)
-        Vector3 dir = transform.forward * moveInput.y + transform.right * moveInput.x;
-        dir = dir.normalized * moveSpeed;
+        if (cc.isGrounded)
+        {
+            airVelocity = (transform.forward * moveInput.y + transform.right * moveInput.x)
+                          * moveSpeed;
+        }
+        else //  IN AIR 
+        {
+            // keep last horizontal velocity but let it decay a bit
+            airVelocity = Vector3.Lerp(airVelocity, Vector3.zero,
+                                       airFriction * Time.deltaTime);
 
-        // simple vertical
+            // allow light aircontrol: add a bit of fresh input each frame
+            Vector3 airControl = (transform.forward * moveInput.y + transform.right * moveInput.x)
+                                 * moveSpeed * 0.3f;          // 0.3 = 30 percent strength
+            airVelocity += airControl * Time.deltaTime;
+        }
+
+        // vertical
         if (!cc.isGrounded) verticalVelocity += gravity * Time.deltaTime;
         else if (verticalVelocity < 0) verticalVelocity = 0;
 
-        dir.y = verticalVelocity;
+        Vector3 frameMove = airVelocity;
+        frameMove.y = verticalVelocity;
 
-        cc.Move(dir * Time.deltaTime);
+        cc.Move(frameMove * Time.deltaTime);
     }
 }
