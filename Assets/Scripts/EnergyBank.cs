@@ -7,6 +7,9 @@ public class EnergyBank : MonoBehaviour
     public int totalEnergy = 0;
     public float canopyTimeLeft = 0f;
     public bool timerRunning = false;
+    public int cyclesCompleted { get; private set; }
+    public int currency = 0;
+
 
     void Awake()
     {
@@ -25,6 +28,18 @@ public class EnergyBank : MonoBehaviour
         Debug.Log(" Energy collected: " + amount + " | Total: " + totalEnergy);
     }
 
+    public void ResetForNextCycle()
+    {
+        totalEnergy = 0;
+        canopyTimeLeft = 0;
+        timerRunning = false;
+    }
+    public void CompleteCycle()
+    {
+        currency += Mathf.CeilToInt(canopyTimeLeft);
+        cyclesCompleted++;
+        ResetForNextCycle();
+    }
     public void BeginCanopyPhase()
     {
         canopyTimeLeft = totalEnergy;

@@ -1,45 +1,120 @@
-using UnityEngine.InputSystem;
+using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class GamePhaseManager : MonoBehaviour
 {
+    public static GamePhaseManager Instance { get; private set; }
+
     [Header("Roots")]
-    [SerializeField] private GameObject undertreePhase;   // drag the ForestPhase GO
-    [SerializeField] private GameObject canopyPhase;   // drag CanopyPhase GO
+    [SerializeField] GameObject undertreePhase;
+    [SerializeField] GameObject canopyPhase;
 
-    [Header("AudioListeners")]
-    [SerializeField] private AudioListener undertreeListener;  // inside tree camera
-    [SerializeField] private AudioListener canopyListener;  // inside FP camera
+    [Header("Audio")]
+    [SerializeField] AudioListener undertreeListener;
+    [SerializeField] AudioListener canopyListener;
 
-    [Header("Input")]
-    [SerializeField] private PlayerInput canopyInput;           
-    [SerializeField] private FirstPersonCanopyController canopyController;
-    private void Awake()
+    [Header("UI")]
+    [SerializeField] GameObject uiGoalMenu;        // canvas refs
+    [SerializeField] GameObject uiFailMenu;
+    [SerializeField] TMP_Text txtEnergyLeft;
+    [SerializeField] TMP_Text txtCycles;
+
+    [SerializeField] PlayerInput canopyInput;
+    EnergyBank bank;
+
+    void Awake()
     {
+        Instance = this;
         canopyInput = canopyPhase.GetComponentInChildren<PlayerInput>(true);
-        canopyPhase.SetActive(false);           // canopy starts hidden
-        canopyListener.enabled = false;         // only one listener on
-    }
+        bank = EnergyBank.instance;
 
+        canopyPhase.SetActive(false);
+        canopyListener.enabled = false;
+
+        uiGoalMenu.SetActive(false);
+        uiFailMenu.SetActive(false);
+    }
+    /* ----------  ENTER CANOPY  ---------- */
     public void EnterCanopyPhase()
     {
-        // 1 swap roots
         undertreePhase.SetActive(false);
         canopyPhase.SetActive(true);
 
-        // 2 audio
         undertreeListener.enabled = false;
         canopyListener.enabled = true;
 
-        // 3 enable & switch action-map
         canopyInput.enabled = true;
-        canopyInput.SwitchCurrentActionMap("Player");   // your action-map name
+        canopyInput.SwitchCurrentActionMap("Player");
 
-        // 4 lock cursor for mouse-look
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        // 5 start the timer
         EnergyBank.instance?.BeginCanopyPhase();
+        //_listen_ for depletion:
+        InvokeRepeating(nameof(CheckForDepletion), 0, .25f);
+    }
+
+    /* ----------  GOAL REACHED  ---------- */
+    public void EnterGoalMenu()
+    {
+        CancelInvoke(nameof(CheckForDepletion));
+
+        canopyPhase.SetActive(false);
+        canopyInput.enabled = false;
+        canopyListener.enabled = false;
+
+        // convert leftover energy to currency
+        txtEnergyLeft.text = $"Energy left: {Mathf.CeilToInt(bank.canopyTimeLeft)}";
+        bank.CompleteCycle();
+
+        uiGoalMenu.SetActive(true);
+        Time.timeScale = 0f;          // pause gameplay
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+    public void ContinueRun()
+    {
+        uiGoalMenu.SetActive(false);
+        Time.timeScale = 1f;
+
+        EnterUndertreePhase();
+    }
+
+    /* ----------  FAIL STATE  ---------- */
+    void CheckForDepletion()
+    {
+        if (bank.timerRunning) return;          // only fires once
+        CancelInvoke(nameof(CheckForDepletion));
+        EnterFailMenu();
+    }
+    void EnterFailMenu()
+    {
+        canopyPhase.SetActive(false);
+        canopyInput.enabled = false;
+        canopyListener.enabled = false;
+
+        txtCycles.text = $"Cycles completed: {bank.cyclesCompleted}";
+        uiFailMenu.SetActive(true);
+
+        Time.timeScale = 0f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+    public void RestartGame()
+    {
+        bank.ResetForNextCycle();
+        uiFailMenu.SetActive(false);
+        Time.timeScale = 1f;
+        EnterUndertreePhase();
+    }
+
+    /* ----------  BACK TO TREES  ---------- */
+    void EnterUndertreePhase()
+    {
+        undertreePhase.SetActive(true);
+        undertreeListener.enabled = true;
+
+        // move light-being back to first tree, reset camera etc. if needed
     }
 }
