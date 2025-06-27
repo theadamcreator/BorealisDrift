@@ -23,6 +23,10 @@ public class GamePhaseManager : MonoBehaviour
     [SerializeField] PlayerInput canopyInput;
     EnergyBank bank;
 
+    void Start()               // runs after Awake of every enabled script
+    {
+        if (!bank) bank = EnergyBank.instance;
+    }
     void Awake()
     {
         Instance = this;
@@ -93,6 +97,9 @@ public class GamePhaseManager : MonoBehaviour
         canopyPhase.SetActive(false);
         canopyInput.enabled = false;
         canopyListener.enabled = false;
+
+        undertreePhase.SetActive(true);
+        undertreeListener.enabled = true;
 
         txtCycles.text = $"Cycles completed: {bank.cyclesCompleted}";
         uiFailMenu.SetActive(true);
