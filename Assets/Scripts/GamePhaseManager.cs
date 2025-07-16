@@ -101,7 +101,7 @@ public class GamePhaseManager : MonoBehaviour
         undertreePhase.SetActive(true);
         undertreeListener.enabled = true;
 
-        txtCycles.text = $"Cycles completed: {bank.cyclesCompleted}";
+        txtCycles.text = $"{bank.cyclesCompleted}";
         uiFailMenu.SetActive(true);
 
         Time.timeScale = 0f;

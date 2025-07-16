@@ -154,5 +154,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 25
-  life: 3
+  life: 2
   trailFX: {fileID: 0}
