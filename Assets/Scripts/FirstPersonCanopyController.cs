@@ -12,8 +12,9 @@ public class FirstPersonCanopyController : MonoBehaviour
     public float moveSpeed = 6f;
     public float jumpForce = 4f;
     public float gravity = 0f;          // keep at 0 to “float”
-    private Vector3 airVelocity;     // stores horizontal momentum
-    [Range(0, 5)] public float airFriction = 1.5f; // 0 = no slowing
+    public Vector3 airVelocity;     // stores horizontal momentum
+    [Range(0, 5)] public float airFriction = 4f; // 0 = no slowing
+
 
     [Header("Look")]
     public float lookSensitivity = 3f;

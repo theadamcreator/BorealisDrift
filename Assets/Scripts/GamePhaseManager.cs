@@ -23,6 +23,9 @@ public class GamePhaseManager : MonoBehaviour
     [SerializeField] PlayerInput canopyInput;
     EnergyBank bank;
 
+
+
+
     void Start()               // runs after Awake of every enabled script
     {
         if (!bank) bank = EnergyBank.instance;
