@@ -62,6 +62,7 @@ public class FirstPersonCanopyController : MonoBehaviour
 
     void Update()
     {
+        if (Time.timeScale == 0f) return;
         // LOOK
         pitch = Mathf.Clamp(pitch - lookInput.y * lookSensitivity, -maxPitch, maxPitch);
         camRoot.localEulerAngles = new Vector3(pitch, 0, 0);

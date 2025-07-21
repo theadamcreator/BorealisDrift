@@ -5,6 +5,7 @@ public class Projectile : MonoBehaviour
     public float speed = 25f;
     public float life = 3f;
     public ParticleSystem trailFX;
+    public int damage = 1;
 
     void Start() => Destroy(gameObject, life);
 
@@ -12,7 +13,8 @@ public class Projectile : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        // TODO: add hit logic / VFX
+        if (other.TryGetComponent(out IDamageable dmg))
+            dmg.TakeHit(damage, transform.position); // TODO: add hit logic / VFX
         Destroy(gameObject);
     }
 }

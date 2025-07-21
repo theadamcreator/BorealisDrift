@@ -8,6 +8,8 @@ public class EnemyCore : MonoBehaviour, IDamageable
     [SerializeField] int maxHits = 1;          // set to 2 on prefab for shielded variant
     [SerializeField] int energyRefund = 2;     // seconds given back on death (optional)
 
+    public int damage = 1;
+
     [Header("VFX")]
     [SerializeField] Material mat;             // drag the material used by the mesh
     [SerializeField] float flashDuration = .15f;

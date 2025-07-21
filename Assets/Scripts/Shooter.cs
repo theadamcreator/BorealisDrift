@@ -11,6 +11,7 @@ public class Shooter : MonoBehaviour
 
     public void TryShoot()
     {
+        if (Time.timeScale == 0f) return;
         if (Time.time < nextShotTime) return;
 
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(.5f, .5f, 0));   // screen centre
