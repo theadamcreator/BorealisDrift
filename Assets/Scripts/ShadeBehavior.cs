@@ -1,122 +1,118 @@
-using UnityEngine;
-using System.Collections.Generic;
+﻿using UnityEngine;
 
-[RequireComponent(typeof(CharacterController))]
 public class ShadeBehavior : MonoBehaviour
 {
-    enum State { Idle, Orbit, Engage, Recover }
+    enum State { Approach, OrbitHold, SpiralIn, CloseOrbit }
     State state;
 
-    [Header("Movement")]
-    public float driftSpeed = 2f;
-    public float orbitSpeed = 60f;   // degrees per sec
-    public float engageSpeed = 5f;
-    public float recoverTime = 1f;
+    [Header("Orbit Spiral")]
+    public float orbitRadius = 9f;    // R₀
+    public float minRadius = 3f;    // Rmin
+    public int stepsToClose = 6;     // spiral clicks
+    public float orbitSpeedDeg = 50f;   // ° / s
 
-    [Header("Attack")]
-    public EnemyProjectile projectilePrefab;
-    public float chargeTime = .7f;
+    [Header("Slash Attack")]
+    public SlashAttack slashPrefab;     // <-- NEW prefab
     public Transform muzzle;
-    public float contactRadius = 1.2f;
+    public float slashCooldown = 0.8f;
 
-    // cache
+    // ------- cache ----------
     CharacterController cc;
-    ILightAttractor targetLight;
-    float chargeTimer, recoverTimer;
-    readonly List<ILightAttractor> attractors = new();
+    ILightAttractor player;
+    float nextSlashTime;
+    float desiredRadius;
+    float shrinkStep;
 
-    void Awake() => cc = GetComponent<CharacterController>();
-
-    void OnEnable() => InvokeRepeating(nameof(ScanLights), 0, .5f);
-    void OnDisable() => CancelInvoke(nameof(ScanLights));
+    void Awake()
+    {
+        cc = GetComponent<CharacterController>();
+        desiredRadius = orbitRadius;
+        shrinkStep = (orbitRadius - minRadius) / stepsToClose;
+    }
+    void Start()
+    {
+        // assume one LightSource on player
+        player = GameObject.FindObjectOfType<LightSource>();
+        state = State.Approach;
+    }
 
     void Update()
     {
-        if (targetLight == null) { state = State.Idle; return; }
+        if (player == null) return;
 
-        float dist = Vector3.Distance(transform.position, targetLight.Position);
+        Vector3 toP = player.Position - transform.position;
+        float dist = toP.magnitude;
 
         switch (state)
         {
-            case State.Idle:
-                IdleMove();
-                if (dist <= targetLight.AttractionRadius) state = State.Orbit;
+            /* ---------- APPROACH ---------- */
+            case State.Approach:
+                MoveToward(toP.normalized, 5f);
+                if (dist <= orbitRadius + 0.5f)
+                    state = State.OrbitHold;
                 break;
 
-            case State.Orbit:
-                OrbitMove();
-                if (dist <= targetLight.EngageRadius) { state = State.Engage; chargeTimer = chargeTime; }
+            /* ---------- ORBIT HOLD ---------- */
+            case State.OrbitHold:
+                OrbitAround(toP, desiredRadius);
+                TrySlash();
+                if (Time.time >= nextSlashTime) StartSpiral();
                 break;
 
-            case State.Engage:
-                EngageMove();
-                chargeTimer -= Time.deltaTime;
-                if (chargeTimer <= 0f) Fire();
-                if (dist > targetLight.EngageRadius * 1.4f) state = State.Recover;
+            /* ---------- SPIRAL IN ---------- */
+            case State.SpiralIn:
+                OrbitAround(toP, desiredRadius);
+                TrySlash();
+                if (desiredRadius <= minRadius + 0.1f)
+                    state = State.CloseOrbit;
                 break;
 
-            case State.Recover:
-                recoverTimer -= Time.deltaTime;
-                if (recoverTimer <= 0f) state = State.Orbit;
+            /* ---------- CLOSE ORBIT ---------- */
+            case State.CloseOrbit:
+                OrbitAround(toP, minRadius);
+                TrySlash();
                 break;
         }
     }
 
-    /* ---------- movement ---------- */
-    void IdleMove()
+    /* ================= helpers ================ */
+
+    void OrbitAround(Vector3 toP, float targetR)
     {
-        // gentle random wander
-        Vector3 dir = new Vector3(Mathf.PerlinNoise(Time.time, 0) - .5f, 0,
-                                  Mathf.PerlinNoise(0, Time.time) - .5f).normalized;
-        cc.Move(dir * driftSpeed * Time.deltaTime);
+        Vector3 tangent = Vector3.Cross(Vector3.up, toP).normalized *
+                          orbitSpeedDeg * Mathf.Deg2Rad;
+        Vector3 radial = toP.normalized *
+                          Mathf.Clamp(toP.magnitude - targetR, -3f, 3f);
+
+        cc.Move((tangent + radial) * Time.deltaTime);
+        FacePlayer(toP);
     }
 
-    void OrbitMove()
+    void MoveToward(Vector3 dir, float spd) =>
+        cc.Move(dir * spd * Time.deltaTime);
+
+    void FacePlayer(Vector3 toP)
     {
-        Vector3 toLight = transform.position - targetLight.Position;
-        Vector3 tangent = Vector3.Cross(Vector3.up, toLight).normalized;
-        Vector3 desired = tangent * orbitSpeed * Mathf.Deg2Rad;   // radians
-        cc.Move(desired * Time.deltaTime);
-        FacePlayer();
+        toP.y = 0;
+        if (toP.sqrMagnitude > .01f)
+            transform.rotation = Quaternion.LookRotation(toP);
     }
 
-    void EngageMove()
+    /* ---------- slash ---------- */
+    void TrySlash()
     {
-        Vector3 dir = (targetLight.Position - transform.position).normalized;
-        cc.Move(dir * engageSpeed * Time.deltaTime);
-        FacePlayer();
+        if (Time.time < nextSlashTime) return;
+        if (!slashPrefab || !muzzle) return;
+
+        var s = Instantiate(slashPrefab, muzzle.position, Quaternion.identity);
+        s.Init(muzzle.position, player.Position);
+
+        nextSlashTime = Time.time + slashCooldown;
     }
 
-    void FacePlayer()
+    void StartSpiral()
     {
-        Vector3 look = targetLight.Position - transform.position;
-        look.y = 0;
-        if (look.sqrMagnitude > .01f)
-            transform.rotation = Quaternion.LookRotation(look);
-    }
-
-    /* ---------- attack ---------- */
-    void Fire()
-    {
-        if (!projectilePrefab || !muzzle) return;
-        Instantiate(projectilePrefab, muzzle.position, muzzle.rotation);
-        recoverTimer = recoverTime;
-        state = State.Recover;
-    }
-
-    /* ---------- scan for lights ---------- */
-    void ScanLights()
-    {
-        attractors.Clear();
-        foreach (var ls in GameObject.FindObjectsOfType<MonoBehaviour>())
-            if (ls is ILightAttractor ia) attractors.Add(ia);
-
-        targetLight = null;
-        float best = 0;
-        foreach (var a in attractors)
-        {
-            float score = a.Intensity / (Vector3.Distance(transform.position, a.Position) + 0.1f);
-            if (score > best) { best = score; targetLight = a; }
-        }
+        desiredRadius = Mathf.Max(minRadius, desiredRadius - shrinkStep);
+        state = State.SpiralIn;
     }
 }

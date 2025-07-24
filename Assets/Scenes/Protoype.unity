@@ -470,14 +470,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 071ef9a9c1d80874ea1d2d6df2aaf522, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  driftSpeed: 2
-  orbitSpeed: 60
-  engageSpeed: 5
-  recoverTime: 1
-  projectilePrefab: {fileID: 4445037426665658189, guid: d4412502a5c121848bca7735d89e8097, type: 3}
-  chargeTime: 0.7
+  orbitRadius: 9
+  minRadius: 3
+  stepsToClose: 6
+  orbitSpeedDeg: 50
+  slashPrefab: {fileID: 1441571241267586312, guid: 562606c5084c5c14ead51fbad18aef35, type: 3}
   muzzle: {fileID: 1450177640}
-  contactRadius: 1.2
+  slashCooldown: 5
 --- !u!143 &277591472
 CharacterController:
   m_ObjectHideFlags: 0
